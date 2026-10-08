@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Events\EnrollmentCreated;
 use App\Http\Controllers\Controller;
 use App\Models\Enrollment;
 use App\Models\Student;
@@ -63,15 +64,19 @@ class EnrollmentController extends Controller
                     ->withInput();
             }
 
-            Enrollment::create([
+            // إنشاء التسجيل مع تخزينه في متغير لتمريره للحدث
+            $enrollment = Enrollment::create([
                 'student_id' => $request->student_id,
                 'training_course_id' => $request->training_course_id,
                 'enrollment_date' => Carbon::now(),
                 'status' => $request->status
             ]);
 
+            // 🚀 إطلاق الحدث لإرسال البريد إلكترونياً تلقائياً عبر الـ Listener
+            event(new EnrollmentCreated($enrollment));
+
             return redirect()->route('admin.enrollments.index')
-                ->with('success', '✅ تم تسجيل الطالب في الدورة التدريبية بنجاح');
+                ->with('success', '✅ تم تسجيل الطالب في الدورة التدريبية بنجاح وتم إرسال إشعار البريد الإلكتروني');
         } catch (\Exception $e) {
             return redirect()->back()
                 ->with('error', '❌ حدث خطأ: ' . $e->getMessage());
